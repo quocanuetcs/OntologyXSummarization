@@ -2,6 +2,7 @@ from entities import SPACY
 from models.querybase.prepare_data import create_vocab
 import numpy as np
 from utils.logger import get_logger
+from utils.similarity import *
 
 logger = get_logger(__file__)
 
@@ -24,7 +25,7 @@ def get_top_n(query, collection_docs, sim, vocab, lambta, n=None):
     result = []
     if vocab is None:
         if not isinstance(collection_docs[0], str):
-            m = [rank.sentence.sentence for rank in collection_docs]
+            m = [sentence.sentence for sentence in collection_docs]
             vocab = create_vocab(m)
         else:
             vocab = create_vocab(collection_docs)
@@ -38,20 +39,20 @@ def get_top_n(query, collection_docs, sim, vocab, lambta, n=None):
     sorted_by_pos(result)
     if isinstance(result[0], str):
         return result
-    return [i.sentence.sentence for i in result]
+    return [i.sentence for i in result]
 
-
-def sorted_by_final(collection_ranks, n_ranks=None):
-    collection_ranks.sort(key=lambda a: a.final_score if a.final_score is not None else 0)
-    if n_ranks is None:
-        n_ranks = len(collection_ranks)
-    return collection_ranks[:n_ranks - 1]
+#
+# def sorted_by_final(collection_ranks, n_ranks=None):
+#     collection_ranks.sort(key=lambda a: a.final_score if a.final_score is not None else 0)
+#     if n_ranks is None:
+#         n_ranks = len(collection_ranks)
+#     return collection_ranks[:n_ranks - 1]
 
 
 def sorted_by_pos(collection_ranks, n_ranks=None):
     if collection_ranks is None or isinstance(collection_ranks[0], str):
         return collection_ranks
-    collection_ranks.sort(key=lambda a: a.ques * 100000000 + a.ans * 10000 + a.sen)
+    collection_ranks.sort(key=lambda a: a.start_ques_pos * 100000000 + a.start_ans_pos * 10000 + a.start_sen_pos)
     if n_ranks is None:
         n_ranks = len(collection_ranks)
     return collection_ranks[:n_ranks - 1]
@@ -65,7 +66,7 @@ class Mmr_Summary:
         self.lambta = lambta
 
     def __call__(self, query=None, collection_docs=None, n_sentences=None, ratio=None, collection_ranks=None,
-                 order=None):
+                 order=None, ):
         if isinstance(collection_docs, str):
             collection_docs = [str(sent) for sent in SPACY.spacy(collection_docs).sents]
         if n_sentences is None:
@@ -115,5 +116,5 @@ if __name__ == '__main__':
     the pelvis. The bone graft is shaped and inserted into and around the area. The bone graft can be held in place 
     with pins, plates, or screws, """
     query = "What bone graft materials are used for spinal fusion?"
-    mmr = Mmr_Summary()
+    mmr = Mmr_Summary(sim=bert_base)
     print(mmr(query, collection_docs, 6))

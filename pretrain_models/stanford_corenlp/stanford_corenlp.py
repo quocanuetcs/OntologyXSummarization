@@ -1,7 +1,7 @@
 import os
 from stanfordcorenlp import StanfordCoreNLP
 
-LIBRARY_PATH = os.path.dirname(os.path.realpath(__file__)) + '/stanford-corenlp-4.2.0'
+LIBRARY_PATH = os.path.dirname(os.path.realpath(__file__)) + '/stanford-corenlp-4.4.0'
 
 
 class CoreNLP:

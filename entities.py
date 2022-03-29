@@ -3,8 +3,8 @@ import en_core_sci_lg
 # import json
 from pytextrank import TextRank
 
-from models.biobert_embedding.embedding import BiobertEmbedding
-from models.stanford_corenlp.stanford_corenlp import CoreNLP
+from pretrain_models.biobert_embedding.embedding import BiobertEmbedding
+from pretrain_models.stanford_corenlp.stanford_corenlp import CoreNLP
 from utils import preprocessing
 
 
@@ -97,6 +97,10 @@ class Sentence:
         self.bert_tokens = bert_tokens
         self.pos_tags = pos_tags
         self.ners = ners
+
+        self.start_ques_pos = None
+        self.start_ans_pos = None
+        self.start_sen_pos = None
 
     def extract_sentence(self, data):
         self.id = str(data['id'])

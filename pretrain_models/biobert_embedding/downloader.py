@@ -40,7 +40,7 @@ def save_response_content(response, destination):
 
 
 def get_BioBert(location):
-    model_path = pathlib.Path(os.path.dirname(os.path.realpath(__file__)) + '/../../data/biobert_v1.1_pubmed_pytorch_model')
+    model_path = pathlib.Path(os.path.dirname(os.path.realpath(__file__)) + '/../../pretrain_models/biobert_v1.1_pubmed_pytorch_model')
 
     if location == 'dropbox':
         if not os.path.isdir(model_path):

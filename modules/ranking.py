@@ -4,7 +4,6 @@ from json import JSONEncoder
 from models.mmr.run_mmr import export_multiple_summaries
 from utils.similarity import word_weight_base, bert_base
 from pandas import DataFrame
-from models.scoring_model_using_lstm.model import Scroing_LSTM
 from evaluations.bleu_evaluation import BleuScore
 from evaluations.rouge_evaluation import RougeScore
 from models.neighbors.neighbor_boost import NeighborBoost
@@ -15,7 +14,6 @@ from models.clustering.split_model import SplitParaScore
 from models.lexrank.lexrank_score import LexrankScore
 from models.querybase.querybase_score import QueryBaseCore, Answer
 from models.graphbase.graph_base_model import GraphScore
-from models.text_rank.textrank_score import TextRankScore
 from models.ner_ratio.ner_ratio import NerRatio
 from utils import preprocessing
 import os
@@ -264,15 +262,15 @@ class Ranking:
         self.reload_df()
         return self
 
-    def add_textrank_score(self, phrases_ratio=None):
-        textrank_score = TextRankScore(phrases_ratio=phrases_ratio)
-        textrank_score.train(self.questions)
-        for question_id, ranks in self.ranks.items():
-            logger.info('Add Textrank score of question {}'.format(question_id))
-            for rank in ranks:
-                rank.add_textrank_score(textrank_score)
-        self.reload_df()
-        return self
+    # def add_textrank_score(self, phrases_ratio=None):
+    #     textrank_score = TextRankScore(phrases_ratio=phrases_ratio)
+    #     textrank_score.train(self.questions)
+    #     for question_id, ranks in self.ranks.items():
+    #         logger.info('Add Textrank score of question {}'.format(question_id))
+    #         for rank in ranks:
+    #             rank.add_textrank_score(textrank_score)
+    #     self.reload_df()
+    #     return self
 
     def add_query_base_score(self, sim=bert_base, ner_weight=None):
         score = QueryBaseCore(ner_weight=ner_weight, sim=sim)
@@ -339,13 +337,13 @@ class Ranking:
 
     def add_final_score(self,
                         final_score_type='sum',
-                        tfidf=0,
-                        lexrank=0,
-                        textrank=0,
-                        graph=0,
-                        query_base=0,
-                        ner=0,
-                        split_para=0):
+                        tfidf=7,
+                        lexrank=3,
+                        textrank=1,
+                        graph=3,
+                        query_base=5,
+                        ner=5,
+                        split_para=10):
         for question_id, ranks in self.ranks.items():
             logger.info('Add Final score of question {}'.format(question_id))
             max_score, min_score = 0, 1000000000
@@ -394,7 +392,7 @@ class Ranking:
                 os.path.dirname(os.path.realpath(__file__)) + '/../data/ranking/' + self.name + '_scores.json'):
             self.load_scores()
             return self
-        self.add_textrank_score()
+        #self.add_textrank_score()
         self.add_ner_score()
         self.add_tfidf_score()
         self.add_lexrank_score()
@@ -403,16 +401,6 @@ class Ranking:
         self.add_split_para_score(sims[2])
         self.add_final_score()
         self.export_scores()
-        return self
-
-    def add_final_score_by_lstm(self):
-        model = Scroing_LSTM()
-        model.train(self.questions, self)
-        for question_id, ranks in self.ranks.items():
-            logger.info('Add Final scoring by LSTM of question {}'.format(question_id))
-            for rank in ranks:
-                rank.add_final_by_lstm(model)
-        self.reload_df()
         return self
 
     def add_rouge_evaluation(self, summary_type='single'):

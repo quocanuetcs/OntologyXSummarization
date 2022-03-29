@@ -2,7 +2,7 @@ import os
 
 import torch
 import logging
-from models.biobert_embedding import downloader
+#from pretrain_models.biobert_embedding import downloader
 from pytorch_pretrained_bert import BertTokenizer, BertModel
 
 __author__ = 'Jitendra Jangid'
@@ -12,7 +12,7 @@ __author__ = 'Jitendra Jangid'
 
 logger = logging.getLogger(__name__)
 
-MODEL_PATH = os.path.dirname(os.path.realpath(__file__)) + '/../../data/biobert_v1.1_pubmed_pytorch_model'
+MODEL_PATH = os.path.dirname(os.path.realpath(__file__)) + '/../../pretrain_models/biobert_v1.1_pubmed_pytorch_model'
 
 
 class BiobertEmbedding(object):
@@ -28,11 +28,7 @@ class BiobertEmbedding(object):
 
     def __init__(self, model_path=MODEL_PATH):
 
-        if model_path is not None and os.path.isdir(model_path):
-            self.model_path = model_path
-        else:
-            self.model_path = downloader.get_BioBert("google drive")
-
+        self.model_path = model_path
         self.tokens = ""
         self.sentence_tokens = ""
         self.tokenizer = BertTokenizer.from_pretrained(self.model_path)

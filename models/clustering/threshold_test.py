@@ -1,6 +1,4 @@
-from models.clustering.split_model import SplitParaScore
-from utils.data_loader import QuestionLoader
-from models.ranking import *
+from modules.pipeline import *
 import json
 
 

@@ -9,9 +9,9 @@ from entities import Question
 from utils.logger import get_logger
 
 # Disable googleapiclient warnings
+##change
 # logging.getLogger('googleapiclient.discovery_cache').setLevel(logging.ERROR)
-# logger = get_logger(__file__)
-print("change")
+logger = get_logger(__file__)
 # DATASET_PATH = os.path.dirname(os.path.realpath(__file__)) \
 #                + '/../data/summarization_datasets/question_driven_answer_summarization_primary_dataset.json'
 
