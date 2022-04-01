@@ -18,6 +18,7 @@ def create_vocab(para, stop=stopwords.words('english')):
     vocab = victories.vocabulary_
     rs = {}
     for key in vocab:
+        # các từ càng xuất hiện nhiều thì điểm càng cao
         rs[key] = 1 / victories.idf_[vocab[key]]
     return rs
 

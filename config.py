@@ -24,23 +24,14 @@ class NER_WEIGHT:
         self.ner_threshold = 0.7
         self.word_threshold = 0.8
 
-class SPLIT_WEIGHT:
-    def __init__(self):
-        self.split_threshold = 0.1
-
-class GRAPH_WEIGHT:
-    def __init__(self):
-        self.ner_weight = 0
 
 class FINAL_WEIGHT:
     def __init__(self):
         self.tfidf = 7
         self.lexrank = 3
-        self.graph = 3
         self.query_base = 5
         self.ner = 5
-        self.split = 10
-        self.total_weight = self.tfidf + self.lexrank + self.graph + self.query_base + self.ner + self.split
+        self.total_weight = self.tfidf + self.lexrank + self.query_base + self.ner
 
 class SENTENCE_SCORING:
     def __init__(self):
@@ -48,8 +39,6 @@ class SENTENCE_SCORING:
         self.lexrank = LEXRANK_WEIGHT()
         self.query_base = QUERY_BASE_WEIGHT()
         self.ner = NER_WEIGHT()
-        self.split = SPLIT_WEIGHT()
-        self.graph = GRAPH_WEIGHT()
         self.final = FINAL_WEIGHT()
 
 class NEIGHBOR_BOOST():
@@ -85,4 +74,20 @@ class MULTI_SUM():
     def __init__(self):
         self.n_sentences = 13
         self.ratio = None
+
+class SYNSET_CONFIG():
+    def __init__(self):
+        self.have_hypernyms_synset = True
+        self.have_hyponums_synset = True
+
+class WORD_CONFIG():
+    def __init__(self):
+        self.have_form = True
+        self.have_derived_forms = True
+
+class WORDNET():
+    def __init__(self):
+       self.synset = SYNSET_CONFIG()
+       self.word = WORD_CONFIG()
+
 

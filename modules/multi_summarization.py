@@ -89,6 +89,6 @@ if __name__ == '__main__':
     score = average_rouge(multi_output, 'gen_summary', 'ref_summary')
 
     RESULT_PATH = '../data/result/'
-    name = 'abcd_3'
+    name = 'tfidf'
     json.dump(multi_output, open(RESULT_PATH + name + '_document_summary.json', 'w+', encoding='utf-8'), indent=2, sort_keys=True)
     json.dump(score, open(RESULT_PATH  + name + '_score.json', 'w+'), indent=2, sort_keys=True)

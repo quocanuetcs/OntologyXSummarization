@@ -1,10 +1,8 @@
 from json import JSONEncoder
 from utils.similarity import word_weight_base, bert_base
 from models.tfidf.tfidf_score import TfIdfScore
-from models.clustering.split_model import SplitParaScore
 from models.lexrank.lexrank_score import LexrankScore
 from models.querybase.querybase_score import QueryBaseCore, Answer
-from models.graphbase.graph_base_model import GraphScore
 from models.ner_ratio.ner_ratio import NerRatio
 import os
 import json
@@ -42,24 +40,11 @@ def get_ner_score_model(questions):
     model.train(questions)
     return model
 
-def get_split_para_score_model(questions, sim=bert_base):
-    model = SplitParaScore(threshold=SENTENCE_SCORING.split.split_threshold, sim=sim)
-    model.train(questions)
-    return model
-
-def get_graph_score_model(questions, sim=word_weight_base):
-    model = GraphScore(ner_weight=SENTENCE_SCORING.graph.ner_weight, sim=sim)
-    model.train(questions)
-    return model
-
-
 def create_sentece_score(questions):
     tfidf_model = get_tfidf_model(questions)
     ner_model = get_ner_score_model(questions)
     lexrank_model = get_lexrank_model(questions)
     query_base_model = get_query_base_score_model(questions, sim=bert_base)
-    graph_model = get_graph_score_model(questions, sim=word_weight_base)
-    split_para_model = get_split_para_score_model(questions)
 
     result = dict()
     for question_id, question in questions.items():
@@ -72,15 +57,11 @@ def create_sentece_score(questions):
                 tfidf_score = tfidf_model.predict_sentence(question_id, answer_id, sentence_id)
                 lex_score = lexrank_model.predict_sentence(question_id, answer_id, sentence_id)
                 query_score = query_base_model.predict_sentence(question_id, answer_id, sentence_id)
-                graph_score = graph_model.predict_sentence(question_id, answer_id, sentence_id)
                 ner_score = ner_model.predict_sentence(question_id, answer_id, sentence_id)
-                split_score = split_para_model.predict_sentence(question_id, answer_id, sentence_id)
                 final_score = tfidf_score*SENTENCE_SCORING.final.tfidf + \
                                 lex_score*SENTENCE_SCORING.final.lexrank + \
                                 query_score*SENTENCE_SCORING.final.query_base + \
-                                graph_score*SENTENCE_SCORING.final.graph + \
-                                ner_score*SENTENCE_SCORING.final.ner + \
-                                split_score*SENTENCE_SCORING.final.split
+                                ner_score*SENTENCE_SCORING.final.ner
                 final_score = final_score/SENTENCE_SCORING.final.total_weight
                 final_max_score = max(final_max_score, final_score)
                 final_min_score = min(final_min_score, final_score)
@@ -88,9 +69,7 @@ def create_sentece_score(questions):
                     'tfidf_score': tfidf_score,
                     'lexrank_score': lex_score,
                     'query_base_score': query_score,
-                    'graph_score': graph_score,
                     'ner_score': ner_score,
-                    'split_para_score': split_score,
                     'final_score': final_score
                 }
         for answer_id, answer in question.answers.items():
