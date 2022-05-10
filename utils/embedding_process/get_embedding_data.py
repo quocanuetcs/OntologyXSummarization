@@ -73,8 +73,8 @@ class Dictionary:
                     rs = np.load(open(self.folder + '/' + str(data[1]) + '.npy', 'rb'))
                     return rs
                 except FileNotFoundError:
-                    logging.info(
-                        '"{}" is invalid!\nembedding vector will automatically return ZERO'.format(sentence))
+                    # logging.info(
+                    #     '"{}" is invalid!\nembedding vector will automatically return ZERO'.format(sentence))
                     return ZERO
 
         # if data not found

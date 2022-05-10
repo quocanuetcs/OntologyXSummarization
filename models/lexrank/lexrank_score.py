@@ -18,13 +18,11 @@ class LexrankScore(BaseModel):
     def __init__(self, threshold=None, tf_for_all_question=None):
         super().__init__()
         self.scores = dict()
-        self.threshold = threshold if threshold is not None \
-            else self.THRESHOLD
+        self.threshold = threshold if threshold is not None else self.THRESHOLD
         self.tf_for_all_question = tf_for_all_question if tf_for_all_question is not None else self.TF_FOR_ALL_QUESTION
 
     def train(self, questions):
         super().train(questions)
-        documents = list()
         if self.tf_for_all_question:
             documents = list()
             logger.info('Load document')
@@ -32,11 +30,9 @@ class LexrankScore(BaseModel):
                 for answer_id, answer in question.answers.items():
                     ans = list()
                     for sentence_id, sentence in answer.sentences.items():
-                        # ans.append(sentence.normalized_sentence)
                         ans.append(sentence)
                     documents.append(ans)
             lxr = LexRank(documents)
-            # lxr = LexRank(documents, stopwords=stopwords.words('english'))
 
         for question_id, question in self.questions.items():
             local_docs = list()
@@ -50,12 +46,10 @@ class LexrankScore(BaseModel):
                     keys[answer_id][sentence_id] = len(sentences)
                     ans.append(sentence)
                     sentences.append(sentence)
-                    # ans.append(sentence.normalized_sentence)
-                    # sentences.append(sentence.normalized_sentence)
+
                 if not self.tf_for_all_question: local_docs.append(ans)
 
             if not (self.tf_for_all_question): lxr = LexRank(local_docs)
-            # if not(self.tf_for_all_question):  lxr = LexRank(local_docs, stopwords=stopwords.words('english'))
 
             scores_cont = lxr.rank_sentences(
                 sentences,

@@ -1,4 +1,4 @@
-from models.biobert_embedding.embedding import BiobertEmbedding
+from pretrain_models.biobert_embedding.embedding import BiobertEmbedding
 from threading import Thread
 import numpy as np
 import time

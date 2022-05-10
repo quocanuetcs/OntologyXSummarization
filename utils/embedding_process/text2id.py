@@ -1,16 +1,8 @@
 import json
 import os
-from entities import SPACY
 from utils.logger import get_logger
-from utils.preprocessing import cleanhtml
 from utils.data_loader import ObjectEncoder
 logging = get_logger(__file__)
-
-
-def get_sents(text):
-    text = cleanhtml(text)
-    return SPACY.get_sents(text)
-
 
 class text2id:
     def __init__(self, path, js=None):
@@ -32,29 +24,11 @@ class text2id:
             for ques_id, ques in i.items():
                 logging.info('running in {} ques'.format(ques_id))
                 try:
-                    list_text.extend(get_sents(ques['question']))
                     list_text.append(ques['question'])
                 except:
                     pass
 
-                try:
-                    list_text.extend(get_sents(ques['multi_abs_summ']))
-                except:
-                    pass
-                try:
-                    list_text.extend(get_sents(ques['multi_ext_summ']))
-                except:
-                    pass
-
                 for ans_id, ans in ques['answers'].items():
-                    try:
-                        list_text.extend(get_sents(ques['answer_abs_summ']))
-                    except:
-                        pass
-                    try:
-                        list_text.extend(get_sents(ques['answer_ext_summ']))
-                    except:
-                        pass
                     for sen_id, sen in ans['sentences'].items():
                         list_text.append(sen['sentence'])
 
