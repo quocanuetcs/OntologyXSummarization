@@ -1,60 +1,29 @@
 from utils import preprocessing
-from entities import NEREntity, CoreNLPEntity, BioBERTEntity
 import numpy as np
+from entities import nlpEnity
 
-BERT_MAX_LENGTH = 512
-SPACY = NEREntity()
-CORE_NLP = CoreNLPEntity()
-BIO_BERT = BioBERTEntity()
-
-class Chemical_Disease_Relation:
-    def __init__(self, chemical_node, disease_node, score):
-        self.chemical_node = chemical_node
-        self.disease_node = disease_node
-        self.keys = list()
-        self.score = score
-
-    def __eq__(self, other):
-        if isinstance(other, Chemical_Disease_Relation):
-            if self.chemical_node.ID == other.chemical_node.ID and self.disease_node.ID == other.chemical_node.ID:
-                return True
-            else: return False
-
-    def update_keys(self, keys):
-        for key in keys:
-            if not np.isnan(key):
-                self.keys.append(key)
-        return self
-
-    def combine_keys(self, other):
-        if self == other:
-            for key in other.keys:
-                if key not in self.keys:
-                    self.keys.append(key)
-            return self
-
-    def combine_score(self, other):
-        if self == other:
-            self.score = max(self.score, other.socre)
-        return self
+nlp = nlpEnity().nlp
 
 class Node:
     def __init__(self, ID, stem_from,
-                 define = None):
+                 define=None):
         self.ID = ID
         self.stem_from = stem_from
         self.define = define
         self.define_tokens = list()
-        #self.define_ber_tokens = list()
         self.define_ners = list()
         self.terms = list()
         self.parents = list()
         self.children = list()
-        self.chemical_disease_relations = list()
+        self.chemical_related_node = list()
+        self.disease_related_node = list()
+        self.gene_related_name = list()
         self.treeNumbers = list()
+        self.symptoms = list()
+        self.category = list()
 
     def __eq__(self,other):
-        if isinstance(other,Node):
+        if isinstance(other, Node):
             if self.ID == other.ID:
                 return True
             else: return False
@@ -69,14 +38,20 @@ class Node:
             self.children.append(child)
         return self
 
-    def add_chemical_disease_relation(self, chemical_disease_relation):
-        if chemical_disease_relation not in self.chemical_disease_relations:
-            self.chemical_disease_relations.append(chemical_disease_relation)
-        else:
-            for relation in self.chemical_disease_relations:
-                if relation == chemical_disease_relation:
-                    relation.combine_keys(chemical_disease_relation)
-                    relation.combine_score(chemical_disease_relation)
+    def add_chemical_related_node(self, node):
+        if node not in self.chemical_related_node:
+            self.chemical_related_node.append(node)
+        return self
+
+    def add_disease_related_node(self, node):
+        if node not in self.disease_related_node:
+            self.disease_related_node.append(node)
+        return self
+
+    def add_gene_related_name(self, list_name):
+        self.gene_related_name = set(self.gene_related_name)
+        self.gene_related_name |= set(list_name)
+        self.gene_related_name = list(self.gene_related_name)
         return self
 
     def add_treeNumbers(self, treeNumber):
@@ -94,23 +69,36 @@ class Node:
             self.terms[index] = preprocessing.normalize(term)
         return self
 
+    def token_tagging(self, doc):
+        tokens = []
+        for token in doc:
+            if not(token.is_stop):
+                tokens.append(token.lemma_)
+        return tokens
+
+    def ner_tagging(self, doc):
+        ners = []
+        for ent in doc.ents:
+            ners.append(ent.lemma_)
+        return ners
+
     def prepare_define(self):
         define_nom = preprocessing.normalize(self.define)
-        self.define_tokens = preprocessing.tokenize(define_nom)
-        # if len(define_nom.split(' ')) > BERT_MAX_LENGTH:
-        #     self.define_ber_tokens = preprocessing.tokenize(define_nom)
-        # else:
-        #     self.define_ber_tokens = BIO_BERT.tokenize(define_nom)
-        self.define_ners = SPACY.get_ners(define_nom)
+        doc = nlp(define_nom)
+        self.define_tokens = self.token_tagging(doc)
+        self.define_ners = self.ner_tagging(doc)
         return self
 
     def node_normalize(self):
         self.normalize_term()
-        self.prepare_define()
+        if self.define is not None:
+            self.prepare_define()
         return self
 
     def extract_json(self, nodeData):
         self.ID = nodeData["ID"]
+        if self.stem_from == "":
+            self.stem_from  = nodeData["stem_from"]
         self.terms = nodeData["terms"]
         self.define = nodeData["define"]
         self.treeNumbers = nodeData["treeNumbers"]
@@ -118,12 +106,54 @@ class Node:
         self.define_ners = nodeData["define_ners"]
         self.parents = nodeData["parents"]
         self.children = nodeData["children"]
+        if len(self.treeNumbers)>0:
+            for treeNum in self.treeNumbers:
+                if 'A' in treeNum and 'A' not in self.category:
+                    self.category.append('A')
+                elif 'B' in treeNum and 'A' not in self.category:
+                    self.category.append('B')
+                elif 'C' in treeNum and 'A' not in self.category:
+                    self.category.append('C')
+                elif 'D' in treeNum and 'A' not in self.category:
+                    self.category.append('D')
+                elif 'E' in treeNum and 'A' not in self.category:
+                    self.category.append('E')
+                elif 'F' in treeNum and 'A' not in self.category:
+                    self.category.append('F')
+                elif 'G' in treeNum and 'A' not in self.category:
+                    self.category.append('G')
+                elif 'H' in treeNum and 'A' not in self.category:
+                    self.category.append('H')
+                elif 'I' in treeNum and 'A' not in self.category:
+                    self.category.append('I')
+                elif 'J' in treeNum and 'A' not in self.category:
+                    self.category.append('J')
+                elif 'K' in treeNum and 'A' not in self.category:
+                    self.category.append('K')
+                elif 'L' in treeNum and 'A' not in self.category:
+                    self.category.append('L')
+                elif 'M' in treeNum and 'A' not in self.category:
+                    self.category.append('M')
+                elif 'N' in treeNum and 'A' not in self.category:
+                    self.category.append('N')
+                elif 'V' in treeNum and 'A' not in self.category:
+                    self.category.append('V')
+                elif 'Z' in treeNum and 'A' not in self.category:
+                    self.category.append('Z')
+                elif 'R' in treeNum and 'A' not in self.category:
+                    self.category.append('R')
+                elif 'Y' in treeNum and 'A' not in self.category:
+                    self.category.append('Y')
+                elif 'X' in treeNum and 'A' not in self.sr:
+                    self.category.append('X')
+        else:
+            self.category.append('C')
         return self
 
 if __name__ == '__main__':
     s = 'New abnormal growth of tissue. Malignant neoplasms show a greater degree of anaplasia and have the properties of invasion and metastasis, compared to benign neoplasms.'
     nom = preprocessing.normalize(s)
-    print("DONE")
+    print(nom)
 
 
 

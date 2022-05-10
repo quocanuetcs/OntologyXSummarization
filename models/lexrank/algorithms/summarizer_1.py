@@ -4,6 +4,10 @@ import numpy as np
 from models.lexrank.algorithms.power_method import stationary_distribution
 from lexrank.utils.text import tokenize as auto_tokenize
 from nltk.corpus import stopwords
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+def custom_tokenize(text):
+    return text
 
 class LexRank:
     def __init__(
@@ -15,39 +19,55 @@ class LexRank:
         self.idf_score = self._calculate_idf(documents)
 
     def _calculate_idf(self, documents):
-        bags_of_words = []
+        corpus = list()
+        for document in documents:
+            for sentence in document:
+                tokens = sentence.tokens
+                corpus.append(tokens)
 
-        for doc in documents:
-            doc_words = set()
+        # Create Tf-Idf vectorizer
+        vectorizers = TfidfVectorizer(tokenizer=custom_tokenize, lowercase=False)
+        vectorizers.fit_transform(corpus)
+        vocab = vectorizers.vocabulary_
+        rs = {}
+        for key in vocab:
+            rs[key] = 1 / vectorizers.idf_[vocab[key]]
+        return rs
 
-            for sentence in doc:
-                words = self.tokenize_sentence(sentence)
-                doc_words.update(words)
-
-            if doc_words:
-                bags_of_words.append(doc_words)
-
-        if not bags_of_words:
-            raise ValueError('documents are not informative')
-
-        doc_number_total = len(bags_of_words)
-
-        if self.include_new_words:
-            default_value = math.log(doc_number_total + 1)
-
-        else:
-            default_value = 0
-
-        idf_score = defaultdict(lambda: default_value)
-
-        for word in set.union(*bags_of_words):
-            doc_number_word = sum(1 for bag in bags_of_words if word in bag)
-            idf_score[word] = math.log(doc_number_total / doc_number_word)
-
-        return idf_score
+    # def _calculate_idf(self, documents):
+    #     bags_of_words = []
+    #
+    #     for doc in documents:
+    #         doc_words = set()
+    #
+    #         for sentence in doc:
+    #             words = sentence.tokens
+    #             doc_words.update(words)
+    #
+    #         if doc_words:
+    #             bags_of_words.append(doc_words)
+    #
+    #     if not bags_of_words:
+    #         raise ValueError('documents are not informative')
+    #
+    #     doc_number_total = len(bags_of_words)
+    #
+    #     if self.include_new_words:
+    #         default_value = math.log(doc_number_total + 1)
+    #
+    #     else:
+    #         default_value = 0
+    #
+    #     idf_score = defaultdict(lambda: default_value)
+    #
+    #     for word in set.union(*bags_of_words):
+    #         doc_number_word = sum(1 for bag in bags_of_words if word in bag)
+    #         idf_score[word] = math.log(doc_number_total / doc_number_word)
+    #     return idf_score
 
     def rank_sentences(
         self,
+        question,
         sentences,
         threshold=.03,
         fast_power_method=True,
@@ -64,10 +84,11 @@ class LexRank:
         tf_scores = []
 
         for sentence in sentences:
-            count = Counter(self.tokenize_sentence(sentence))
+            #count = Counter(self.tokenize_sentence(sentence))
+            count = Counter(sentence.tokens)
             tf_scores.append(count)
 
-        similarity_matrix = self._calculate_similarity_matrix(tf_scores)
+        similarity_matrix = self._calculate_similarity_matrix(tf_scores,question)
 
         if threshold is None:
             markov_matrix = self._markov_matrix(similarity_matrix)
@@ -91,25 +112,25 @@ class LexRank:
     #     return tokens
 
 
-    def tokenize_sentence(self, sentence):
-        stw = stopwords.words('english')
-        tokens = auto_tokenize(
-            sentence.normalized_sentence,
-            stw,
-            False,
-            False,
-            False,
-        )
-        return tokens
+    # def tokenize_sentence(self, sentence):
+    #     stw = stopwords.words('english')
+    #     tokens = auto_tokenize(
+    #         sentence.normalized_sentence,
+    #         stw,
+    #         False,
+    #         False,
+    #         False,
+    #     )
+    #     return tokens
 
-    def _calculate_similarity_matrix(self, tf_scores):
+    def _calculate_similarity_matrix(self, tf_scores, question):
         length = len(tf_scores)
 
         similarity_matrix = np.zeros([length] * 2)
 
         for i in range(length):
             for j in range(i, length):
-                similarity = self._idf_modified_cosine(tf_scores, i, j)
+                similarity = self._idf_modified_cosine(tf_scores, i, j, question)
 
                 if similarity:
                     similarity_matrix[i, j] = similarity
@@ -117,7 +138,7 @@ class LexRank:
 
         return similarity_matrix
 
-    def _idf_modified_cosine(self, tf_scores, i, j):
+    def _idf_modified_cosine(self, tf_scores, i, j, question):
         if i == j:
             return 1
 
@@ -128,7 +149,7 @@ class LexRank:
 
         for word in words_i & words_j:
             idf = self.idf_score[word]
-            nominator += tf_i[word] * tf_j[word] * idf ** 2
+            nominator += question.keyword_weights.get(word,1)*tf_i[word] * tf_j[word] * idf ** 2
 
         if math.isclose(nominator, 0):
             return 0

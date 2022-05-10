@@ -1,123 +1,210 @@
-import xml.etree.cElementTree as ET
-
-import pandas as pd
-from tqdm import tqdm
-from ontology_entities import Node, Chemical_Disease_Relation
 from utils.logger import get_logger
 import pickle
-logger = get_logger(__file__)
 import json
 from json import JSONEncoder
 import os
+from ontology.MeSH_Constructing import MeSH_building, MeSH_create_node_relation
+from ontology.Mondo_Constructing import Mondo_building
+from ontology.CTD_relation import create_chemicals_diseases_relation,create_gene_diseases_relation
+from ontology.SYMP_Constructing import SYMP_building
+from tqdm import tqdm
+from difflib import SequenceMatcher, get_close_matches
 
+
+turn_debug = False
+logger = get_logger(__file__)
 class ObjectEncoder(JSONEncoder):
     def default(self, o):
         return o.__dict__
 
-def MeSH_create_node_relation(node_dict, tree_num_dict):
-    with open('Data/MeSH/mtrees2021.pkl', 'rb') as f:
-        tree_dict = pickle.load(f)
+def create_term_node_dict(node_dict):
+    dict_path = os.path.dirname(os.path.realpath(__file__)) + '/Data/Intergrated_Ontology/term_node_dict.json'
+    logger.info("Load MeSH term_node_dict")
+    if os.path.exists(dict_path):
+        with open(dict_path, encoding='utf-8') as file:
+            term_node_dict = json.load(file)
+    else:
+        term_node_dict = dict()
+        for nodeID, node in node_dict.items():
+            for term in node.terms:
+                if term not in term_node_dict:
+                    term_node_dict[term] = []
+                term_node_dict[term].append(nodeID)
+        with open(dict_path, 'w+') as file:
+            file.write(json.dumps(term_node_dict, cls=ObjectEncoder, indent=2, sort_keys=True))
+    return term_node_dict
 
-    for nodeID in node_dict:
-        node = node_dict[nodeID]
-        for tree_number in node.treeNumbers:
+
+def word_similarity(word_1, word_2):
+    return SequenceMatcher(None, word_1, word_2).ratio()
+
+def similarity(ner_1, ner_2, threshold):
+    tokens_1 = ner_1.split(' ')
+    tokens_2 = ner_2.split(' ')
+    if len(tokens_1) + len(tokens_2) == 0:
+        return 0
+    valid_1, valid_2 = dict(), dict()
+    for i in range(len(tokens_1)):
+        for j in range(len(tokens_2)):
+            if word_similarity(tokens_1[i], tokens_2[j]) >= threshold:
+                valid_1[i], valid_2[j] = True, True
+    return (len(valid_1) + len(valid_2)) / (len(tokens_1) + len(tokens_2))
+
+
+def infer_nodeID_from_ner(ontology_node_dict, ner, word_threshold=0.8, ner_threshold=0.7):
+    node_dict = dict()
+    for nodeID, node in ontology_node_dict.items():
+        close_words = get_close_matches(ner, node.terms, n=1, cutoff=0.6)
+        if len(close_words)>0:
+            if similarity(ner_1=close_words[0], ner_2=ner, threshold=word_threshold) >= ner_threshold:
+                if turn_debug: logger.info("Ontology Find --{}-- from --{}-- with close word --{}--".format(node.ID, ner, close_words[0]))
+                node_dict[node.ID] = node
+    return [node for nodeID,node in node_dict.items()]
+
+def expanding_from_ontology(ontology_node_dict, ner_list):
+    ner_set = set()
+    related_nodeIDs = set()
+    for ner in ner_list:
+        related_nodes = infer_nodeID_from_ner(ontology_node_dict, ner)
+        for related_node in related_nodes:
+            related_nodeIDs.add(related_node.ID)
+            for term in related_node.terms:
+                if term not in ner_set:
+                    ner_set.add(term)
+    return list(ner_set), related_nodeIDs
+
+# def add_symp(node_dict):
+#     symp_maping_dict_path = os.path.dirname(os.path.realpath(__file__)) + '/Data/SYMP/diseases_symp_maping_dict.json'
+#     #symp_node_maping_dict_path = os.path.dirname(os.path.realpath(__file__)) + '/Data/SYMP/diseases_node_symp_maping_dict.json'
+#     if os.path.exists(symp_maping_dict_path):
+#         with open(symp_maping_dict_path, encoding='utf-8') as file:
+#             symp_maping_dict = json.load(file)
+#         for nodeID, node in tqdm(node_dict.items()):
+#             if len(symp_maping_dict[nodeID])>0:
+#                 node_dict[nodeID].symptoms = symp_maping_dict[nodeID]
+#     else:
+#         logger.info("Get maping to SYMP")
+#         symp_node_maping_dict_path = dict()
+#         symp_node_dict = SYMP_building()
+#         for nodeID, node in tqdm(node_dict.items()):
+#             symps, related_nodeIDs = expanding_from_ontology(ontology_node_dict=symp_node_dict, ner_list=node.define_ners)
+#             if len(symps)>0:
+#                 node_dict[nodeID].symptoms = symps
+#                 symp_node_maping_dict_path[nodeID] = list()
+#                 symp_node_maping_dict_path[nodeID].extend(related_nodeIDs)
+#         with open(symp_maping_dict_path, 'w+') as file:
+#             file.write(json.dumps(symp_node_maping_dict_path, cls=ObjectEncoder, indent=2, sort_keys=True))
+#     return node_dict
+
+def add_symp(node_dict):
+    symp_node_maping_dict_path = os.path.dirname(os.path.realpath(__file__)) + '/Data/SYMP/diseases_node_symp_maping_dict.json'
+    if os.path.exists(symp_node_maping_dict_path):
+        with open(symp_node_maping_dict_path, encoding='utf-8') as file:
+            symp_node_maping_dict = json.load(file)
+        for nodeID, node in tqdm(node_dict.items()):
             try:
-                for child_tree_number in tree_dict[tree_number]:
-                    try:
-                        childID = tree_num_dict[child_tree_number]
-                        child = node_dict[childID]
-                        node.add_child(child)
-                        child.add_parent(node)
-                    except:
-                        logger.info("Can't find {}".format(child_tree_number))
+                node_dict[nodeID].symptoms = symp_node_maping_dict[nodeID]
             except:
                 pass
-    return node_dict
-
-
-def MeSH_xml_detecting():
-    tree = ET.parse('Data/MeSH/desc2021.xml')
-    root = tree.getroot()
-
-    node_dict = dict()
-    tree_num_dict = dict()
-    for child in tqdm(root):
-        ID = child.find('DescriptorUI').text
-
-        defines = []
-        for term in child.iter('ScopeNote'):
-            defines.append(term.text)
-
-        node = Node(ID=ID,stem_from="MeSH",define=" ".join(defines))
-
-        for term in child.iter('Term'):
-            node.add_terms(term[1].text)
-
-        for tree_num_list in child.iter('TreeNumberList'):
-            for tree_num in tree_num_list.iter('TreeNumber'):
-                node.add_treeNumbers(tree_num.text)
-                if tree_num in tree_num_dict:
-                    logger.info("Duplicate tree number in {}{}".format(node.ID,tree_num_dict[tree_num]))
-                else:
-                    tree_num_dict[tree_num.text] = node.ID
-
-        node = node.node_normalize()
-        if node.ID in node_dict:
-            logger.info("Dupplicate ID {}".format(node.ID))
-            exit()
-        else:
-            node_dict[node.ID] = node
-    return node_dict, tree_num_dict
-
-def MeSH_create_chemicals_diseases_relation(node_dict):
-    df_relations = pd.read_csv('Data/CTD/CTD_chemicals_diseases_result.csv')
-    count = 0
-    for index, row in df_relations.iterrows():
-        try:
-            chemical_node = node_dict[row['ChemicalID']]
-            disease_node = node_dict[row['DiseaseID']]
-            relation = Chemical_Disease_Relation(chemical_node=chemical_node, disease_node=disease_node, score=row['InferenceScore'])
-            relation.update_keys(keys=[row['DirectEvidence']])
-            chemical_node.add_chemical_disease_relation(relation)
-            disease_node.add_chemical_disease_relation(relation)
-            count += 1
-            print(count)
-        except:
-            pass
-    print(count)
-    return node_dict
-
-
-def MeSH_building():
-    tree_num_path = 'Data/MeSH/tree_num_dict.pkl'
-    node_dict_path = 'Data/MeSH/node_dict.json'
-    if os.path.exists(tree_num_path) and os.path.exists(node_dict_path):
-        logger.info("Load MeSH node_dict and tree_num_dict")
-        with open(tree_num_path, 'rb') as f:
-            tree_num_dict = pickle.load(f)
-
-        with open(node_dict_path, encoding='utf-8') as file:
-            data = json.load(file)
-        node_dict = dict()
-        for nodeID, nodeData in data.items():
-            node_dict[nodeID] = Node(ID=nodeID, stem_from="MeSH").extract_json(nodeData)
     else:
-        logger.info("Make MeSH xml detecting")
-        node_dict, tree_num_dict = MeSH_xml_detecting()
-        with open(tree_num_path, 'wb') as f:
-            pickle.dump(tree_num_dict, f)
-
-        with open(node_dict_path, 'w+') as file:
-            file.write(json.dumps(node_dict, cls=ObjectEncoder, indent=2, sort_keys=True))
-
-    logger.info("Make MeSH relation")
-    node_dict = MeSH_create_node_relation(node_dict, tree_num_dict)
-    node_dict = MeSH_create_chemicals_diseases_relation(node_dict)
+        logger.info("Get maping to SYMP")
+        symp_node_maping_dict = dict()
+        symp_node_dict = SYMP_building()
+        for nodeID, node in tqdm(node_dict.items()):
+            symps, related_nodeIDs = expanding_from_ontology(ontology_node_dict=symp_node_dict, ner_list=node.define_ners)
+            if len(symps)>0:
+                node_dict[nodeID].symptoms = symps
+                symp_node_maping_dict[nodeID] = list()
+                symp_node_maping_dict[nodeID].extend(related_nodeIDs)
+        with open(symp_node_maping_dict_path, 'w+') as file:
+            file.write(json.dumps(symp_node_maping_dict, cls=ObjectEncoder, indent=2, sort_keys=True))
     return node_dict
+
+def ontology_intergrating(have_mondo, have_symp, have_chemicals_diseases_relation, have_gene):
+    node_dict = MeSH_building()
+    if have_mondo:
+        mondo_node_dict, mapping_to_mondo = Mondo_building()
+
+        logger.info("Ontology Intergrating")
+        mondo_remove_ID = list()
+        for info, map_list in tqdm(mapping_to_mondo.items()):
+            nodeID, term_from = info.split(':')[0], info.split(':')[1]
+            if term_from=="MESH" and nodeID in node_dict:
+                for mondoID in map_list:
+                    logger.info("Merge Mondo mode {} to Mesh node {}".format(mondoID, nodeID))
+                    mondo_remove_ID.append(mondoID)
+                    mondo_node =  mondo_node_dict[mondoID]
+                    mesh_node = node_dict[nodeID]
+                    for term in mondo_node.terms:
+                        mesh_node.add_terms(term)
+                    for parent_node in mondo_node.parents:
+                        mesh_node.add_parent(parent_node)
+                    for child_node in mondo_node.children:
+                        mesh_node.add_child(child_node)
+                    if not isinstance(mesh_node.stem_from, list):
+                        mesh_node.stem_from = [mesh_node.stem_from]
+                    mesh_node.stem_from.append("MONDO")
+                    mesh_node.define = ' '.join([mesh_node.define, mondo_node.define])
+                    for token in mondo_node.define_tokens:
+                        if token not in mesh_node.define_tokens:
+                            mesh_node.define_tokens.append(token)
+                    for ner in mondo_node.define_tokens:
+                        if ner not in mesh_node.define_ners:
+                            mesh_node.define_ners.append(ner)
+                    node_dict[nodeID] = mesh_node
+
+        for mondoID, mondo_node in mondo_node_dict.items():
+            if mondoID not in mondo_remove_ID:
+                if mondoID not in node_dict:
+                    node_dict[mondoID] = mondo_node
+                else:
+                    logger.info("ID {} is exist".format(mondoID))
+        if have_chemicals_diseases_relation: node_dict = create_chemicals_diseases_relation(node_dict, mapping_to_mondo)
+        if have_gene: node_dict = create_gene_diseases_relation(node_dict, mapping_to_mondo)
+        if have_symp: node_dict = add_symp(node_dict)
+    else:
+        if have_chemicals_diseases_relation:
+             node_dict = create_chemicals_diseases_relation(node_dict)
+        if have_gene: node_dict = create_gene_diseases_relation(node_dict)
+        if have_symp: node_dict = add_symp(node_dict)
+    return node_dict
+
 
 if __name__ == '__main__':
-    node_dict = MeSH_building()
-    print("DONE")
+    node_dict_symp = SYMP_building()
+    node_dict = ontology_intergrating(have_mondo=True, have_symp=True, have_chemicals_diseases_relation=True, have_gene=True)
+    count_term = 0
+    count_par_child_relation = 0
+    count_disease_drug_relation = 0
+    count_disease_gene_relation = 0
+    count_disease_symp = 0
+    syms = set()
+    syms_term = []
+    genes = set()
+    for nodeID, node in node_dict.items():
+        count_term = count_term + len(node.terms)
+        count_par_child_relation = count_par_child_relation + len(node.parents)
+        count_disease_drug_relation = count_disease_drug_relation + len(node.chemical_related_node)
+        if len(node.gene_related_name)>0:
+            count_disease_gene_relation = count_disease_gene_relation + 1
+            genes |= set(node.gene_related_name)
+        if len(node.symptoms)>0:
+            count_disease_symp = count_disease_symp + len(node.symptoms)
+            for sym in node.symptoms:
+                if sym not in syms:
+                    syms.add(sym)
+                    syms_term.extend(node_dict_symp[sym].terms)
+    print(len(node_dict))
+    print(count_term)
+    print(count_par_child_relation)
+    print(count_disease_drug_relation)
+    print(count_disease_gene_relation)
+    print(count_disease_symp)
+    print(len(genes))
+    print("-------------")
+    print(len(syms))
+    print(len(syms_term))
+
 
 
 

@@ -2,7 +2,6 @@ import os
 
 import torch
 import logging
-#from pretrain_models.biobert_embedding import downloader
 from pytorch_pretrained_bert import BertTokenizer, BertModel
 
 __author__ = 'Jitendra Jangid'
@@ -78,43 +77,6 @@ class BiobertEmbedding(object):
 
         return encoded_layers
 
-    def word_vector(self, text, handle_oov=True, filter_extra_tokens=False):
-
-        tokenized_text = self.process_text(text)
-
-        encoded_layers = self.eval_fwdprop_biobert(tokenized_text)
-
-        # Concatenate the tensors for all layers. We use `stack` here to
-        # create a new dimension in the tensor.
-        token_embeddings = torch.stack(encoded_layers, dim=0)
-        token_embeddings = torch.squeeze(token_embeddings, dim=1)
-        # Swap dimensions 0 and 1.
-        token_embeddings = token_embeddings.permute(1, 0, 2)
-
-        # Stores the token vectors, with shape [22 x 768]
-        word_embeddings = []
-        logger.info("Summing last 4 layers for each token")
-        # For each token in the sentence...
-        for token in token_embeddings:
-            # `token` is a [12 x 768] tensor
-            # Sum the vectors from the last four layers.
-            sum_vec = torch.sum(token[-4:], dim=0)
-
-            # Use `sum_vec` to represent `token`.
-            word_embeddings.append(sum_vec)
-
-        self.tokens = tokenized_text
-        if filter_extra_tokens:
-            # filter_spec_tokens: filter [CLS], [SEP] tokens.
-            word_embeddings = word_embeddings[1:-1]
-            self.tokens = tokenized_text[1:-1]
-
-        if handle_oov:
-            self.tokens, word_embeddings = self.handle_oov(self.tokens, word_embeddings)
-        logger.info(self.tokens)
-        logger.info("Shape of Word Embeddings = %s", str(len(word_embeddings)))
-        return word_embeddings
-
     def sentence_vector(self, text):
 
         logger.info("Taking last layer embedding of each word.")
@@ -133,12 +95,4 @@ class BiobertEmbedding(object):
         return sentence_embedding
 
 
-if __name__ == "__main__":
-    text = "Breast cancers with HER2 amplification have a higher risk of CNS metastasis and poorer prognosis."
 
-    biobert = BiobertEmbedding()
-    word_embeddings = biobert.word_vector(text)
-    text = 'abetalipoproteimemia hi, I would like to know if there is any support for those suffering with abetalipoproteinemia? I am not diagnosed but have had many test that indicate I am suffering with this, keen to learn how to get it diagnosed and how to manage, many thanks'
-    word_embeddings = biobert.word_vector(text)
-    print(biobert.tokens)
-    sentence_embedding = biobert.sentence_vector(text)

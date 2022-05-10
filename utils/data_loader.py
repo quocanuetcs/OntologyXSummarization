@@ -23,7 +23,7 @@ class ObjectEncoder(JSONEncoder):
 
 class QuestionLoader:
 
-    def __init__(self, name):
+    def __init__(self, name=None):
         self.file_path = os.path.dirname(
             os.path.realpath(__file__)) + '/../data/preprocessing/' + name + '_preprocessing.json'
         self.questions = dict()

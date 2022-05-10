@@ -89,13 +89,13 @@ def from_in_input_data(name, input_path='../data/raw/'):
     abs_multisumm_file_name = ""
     out_path = '../data/raw_json/'
 
-    if name=='validation':
+    if 'validation' in name:
         answer_file_name = VAL_ANSWER_FILE_NAME
         ext_multisumm_file_name = VAL_EXT_MULTISUMM_FILE_NAME
         ques_file_name = VAL_QUES_FILE_NAME
         abs_multisumm_file_name = VAL_ABS_MULTISUMM_FILE_NAME
         source_file_name = 'validation_raw.json'
-    elif name=='test':
+    elif 'test' in name:
         answer_file_name = TEST_ANSWER_FILE_NAME
         ext_multisumm_file_name = TEST_EXT_MULTISUMM_FILE_NAME
         ques_file_name = TEST_QUES_FILE_NAME

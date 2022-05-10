@@ -7,7 +7,7 @@ from config import PREPROCESSING_CONFIG
 logger = get_logger(__file__)
 
 def preprocesing(name=PREPROCESSING_CONFIG().name):
-    input_data = from_in_input_data(name=name)
+    input_data = from_in_input_data(name=name.split('_')[0])
     logger.info(name + ' raw loaded!')
     input_data = QuestionLoader(name).extract_json(input_data)
     logger.info(name + ' was preprocessed!')
@@ -15,7 +15,7 @@ def preprocesing(name=PREPROCESSING_CONFIG().name):
     logger.info('embedding {} added!'.format(name))
 
 def load_preprocessing(name=PREPROCESSING_CONFIG().name):
-    path = '../data/preprocessing/{}_preprocessing.json'.format(name)
+    path = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + '/data/preprocessing/{}_preprocessing.json'.format(name)
     if os.path.exists(path):
         logger.info('load preprocessing in {}'.format(path))
         pass
@@ -35,5 +35,6 @@ def load_preprocessing(name=PREPROCESSING_CONFIG().name):
     return questions
 
 if __name__ == '__main__':
-    questions = load_preprocessing()
-    print("Done")
+    questions = preprocesing(name='test')
+    print('Done')
+

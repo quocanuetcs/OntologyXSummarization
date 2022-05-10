@@ -99,6 +99,7 @@ def word_weight_base(sen_1, sen_2, vocab=None, opt="MAX", ner_weight=0):
             n_1 += ner_1[ner] * ner_weight
         for ner in ner_2:
             n_2 += ner_2[ner] * ner_weight
+
     for word_1, time_1 in vec_1.items():
         if word_1 in vocab:
             if word_1 in vec_2:

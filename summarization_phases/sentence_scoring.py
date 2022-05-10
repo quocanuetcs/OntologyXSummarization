@@ -1,14 +1,16 @@
 from json import JSONEncoder
-from utils.similarity import word_weight_base, bert_base
+import json
+from utils.data_loader import QuestionLoader
+from utils.similarity import bert_base
 from models.tfidf.tfidf_score import TfIdfScore
 from models.lexrank.lexrank_score import LexrankScore
-from models.querybase.querybase_score import QueryBaseCore, Answer
-from models.ner_ratio.ner_ratio import NerRatio
-import os
-import json
+from models.querybase.querybase_score import QueryBaseCore
+from models.keyword_ratio.keyword_ratio import NerRatio
+from models.wRWMD.wRWMD_score import wRWMD
 from utils.logger import get_logger
-from utils.data_loader import QuestionLoader
 from config import SENTENCE_SCORING
+import os
+
 
 SENTENCE_SCORING = SENTENCE_SCORING()
 logger = get_logger(__file__)
@@ -25,13 +27,14 @@ def get_tfidf_model(questions):
     model.train(questions)
     return  model
 
-def get_lexrank_model(questions):
-    model = LexrankScore(threshold=SENTENCE_SCORING.lexrank.threshold, tf_for_all_question=SENTENCE_SCORING.lexrank.tf_for_all_question)
+def get_lexrank_model(questions, threshold=None):
+    if threshold is None: threshold =  SENTENCE_SCORING.lexrank.threshold
+    model = LexrankScore(threshold=threshold, tf_for_all_question=SENTENCE_SCORING.lexrank.tf_for_all_question)
     model.train(questions)
     return model
 
 def get_query_base_score_model(questions, sim=bert_base):
-    model = QueryBaseCore(ner_weight=SENTENCE_SCORING.query_base.query_ner_weight, sim=sim)
+    model = QueryBaseCore(sim=sim)
     model.train(questions)
     return model
 
@@ -40,11 +43,19 @@ def get_ner_score_model(questions):
     model.train(questions)
     return model
 
+def get_wRWD_model(questions):
+    model = wRWMD()
+    model.train(questions)
+    return model
+
 def create_sentece_score(questions):
-    tfidf_model = get_tfidf_model(questions)
-    ner_model = get_ner_score_model(questions)
-    lexrank_model = get_lexrank_model(questions)
     query_base_model = get_query_base_score_model(questions, sim=bert_base)
+    lexrank_model = get_lexrank_model(questions)
+    ner_model = get_ner_score_model(questions)
+    wRWMD_model = get_wRWD_model(questions)
+    tfidf_model = get_tfidf_model(questions)
+
+
 
     result = dict()
     for question_id, question in questions.items():
@@ -58,10 +69,12 @@ def create_sentece_score(questions):
                 lex_score = lexrank_model.predict_sentence(question_id, answer_id, sentence_id)
                 query_score = query_base_model.predict_sentence(question_id, answer_id, sentence_id)
                 ner_score = ner_model.predict_sentence(question_id, answer_id, sentence_id)
+                wRWD_score = wRWMD_model.predict_sentence(question_id, answer_id, sentence_id)
                 final_score = tfidf_score*SENTENCE_SCORING.final.tfidf + \
                                 lex_score*SENTENCE_SCORING.final.lexrank + \
-                                query_score*SENTENCE_SCORING.final.query_base + \
-                                ner_score*SENTENCE_SCORING.final.ner
+                                ner_score*SENTENCE_SCORING.final.ner + \
+                                wRWD_score*SENTENCE_SCORING.final.wRWMD +\
+                                query_score*SENTENCE_SCORING.final.query_based
                 final_score = final_score/SENTENCE_SCORING.final.total_weight
                 final_max_score = max(final_max_score, final_score)
                 final_min_score = min(final_min_score, final_score)
@@ -70,6 +83,7 @@ def create_sentece_score(questions):
                     'lexrank_score': lex_score,
                     'query_base_score': query_score,
                     'ner_score': ner_score,
+                    'wRWMD':wRWD_score,
                     'final_score': final_score
                 }
         for answer_id, answer in question.answers.items():
@@ -80,14 +94,18 @@ def create_sentece_score(questions):
                     result[question_id][answer_id][sentence_id]['final_score'] = (result[question_id][answer_id][sentence_id]['final_score'] - final_min_score)/(final_max_score-final_min_score)
     return result
 
-def load_score_by_name(name):
-    score_path = os.path.dirname(os.path.realpath(__file__)) + '/../data/ranking/' + name + '_sentence_scores.json'
+def load_score_by_name(name, link=None, questions=None):
+    if link is None:
+        score_path = os.path.dirname(os.path.realpath(__file__)) + '/../data/ranking/' + name + '_sentence_scores.json'
+    else: score_path = link
+
     if os.path.exists(score_path):
         logger.info('sentence score exists in {}'.format(score_path))
         pass
     else:
-        loader = QuestionLoader(name=name).read_json('../data/preprocessing/{}_preprocessing.json'.format(name))
-        questions = loader.questions
+        if questions is None:
+            loader = QuestionLoader(name=name).read_json('../data/preprocessing/{}_preprocessing.json'.format(name))
+            questions = loader.questions
 
         scores = create_sentece_score(questions)
 
