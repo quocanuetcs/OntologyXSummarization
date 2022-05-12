@@ -3,10 +3,9 @@ from utils.logger import get_logger
 from utils.similarity import BERT_DICTIONARY
 from utils.to_json import from_in_input_data
 import os
-from config import PREPROCESSING_CONFIG
 logger = get_logger(__file__)
 
-def preprocesing(name=PREPROCESSING_CONFIG().name):
+def preprocesing(name):
     input_data = from_in_input_data(name=name.split('_')[0])
     logger.info(name + ' raw loaded!')
     input_data = QuestionLoader(name).extract_json(input_data)
@@ -14,7 +13,7 @@ def preprocesing(name=PREPROCESSING_CONFIG().name):
     BERT_DICTIONARY.push(preprocessing_js=input_data)
     logger.info('embedding {} added!'.format(name))
 
-def load_preprocessing(name=PREPROCESSING_CONFIG().name):
+def load_preprocessing(name):
     path = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + '/data/preprocessing/{}_preprocessing.json'.format(name)
     if os.path.exists(path):
         logger.info('load preprocessing in {}'.format(path))

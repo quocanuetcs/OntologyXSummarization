@@ -110,50 +110,45 @@ class Node:
             for treeNum in self.treeNumbers:
                 if 'A' in treeNum and 'A' not in self.category:
                     self.category.append('A')
-                elif 'B' in treeNum and 'A' not in self.category:
+                elif 'B' in treeNum and 'B' not in self.category:
                     self.category.append('B')
-                elif 'C' in treeNum and 'A' not in self.category:
+                elif 'C' in treeNum and 'C' not in self.category:
                     self.category.append('C')
-                elif 'D' in treeNum and 'A' not in self.category:
+                elif 'D' in treeNum and 'D' not in self.category:
                     self.category.append('D')
-                elif 'E' in treeNum and 'A' not in self.category:
+                elif 'E' in treeNum and 'E' not in self.category:
                     self.category.append('E')
-                elif 'F' in treeNum and 'A' not in self.category:
+                elif 'F' in treeNum and 'F' not in self.category:
                     self.category.append('F')
-                elif 'G' in treeNum and 'A' not in self.category:
+                elif 'G' in treeNum and 'G' not in self.category:
                     self.category.append('G')
-                elif 'H' in treeNum and 'A' not in self.category:
+                elif 'H' in treeNum and 'H' not in self.category:
                     self.category.append('H')
-                elif 'I' in treeNum and 'A' not in self.category:
+                elif 'I' in treeNum and 'I' not in self.category:
                     self.category.append('I')
-                elif 'J' in treeNum and 'A' not in self.category:
+                elif 'J' in treeNum and 'J' not in self.category:
                     self.category.append('J')
-                elif 'K' in treeNum and 'A' not in self.category:
+                elif 'K' in treeNum and 'K' not in self.category:
                     self.category.append('K')
-                elif 'L' in treeNum and 'A' not in self.category:
+                elif 'L' in treeNum and 'L' not in self.category:
                     self.category.append('L')
-                elif 'M' in treeNum and 'A' not in self.category:
+                elif 'M' in treeNum and 'M' not in self.category:
                     self.category.append('M')
-                elif 'N' in treeNum and 'A' not in self.category:
+                elif 'N' in treeNum and 'N' not in self.category:
                     self.category.append('N')
-                elif 'V' in treeNum and 'A' not in self.category:
+                elif 'V' in treeNum and 'V' not in self.category:
                     self.category.append('V')
-                elif 'Z' in treeNum and 'A' not in self.category:
+                elif 'Z' in treeNum and 'Z' not in self.category:
                     self.category.append('Z')
-                elif 'R' in treeNum and 'A' not in self.category:
+                elif 'R' in treeNum and 'R' not in self.category:
                     self.category.append('R')
-                elif 'Y' in treeNum and 'A' not in self.category:
+                elif 'Y' in treeNum and 'Y' not in self.category:
                     self.category.append('Y')
-                elif 'X' in treeNum and 'A' not in self.sr:
+                elif 'X' in treeNum and 'X' not in self.category:
                     self.category.append('X')
         else:
             self.category.append('C')
         return self
-
-if __name__ == '__main__':
-    s = 'New abnormal growth of tissue. Malignant neoplasms show a greater degree of anaplasia and have the properties of invasion and metastasis, compared to benign neoplasms.'
-    nom = preprocessing.normalize(s)
-    print(nom)
 
 
 

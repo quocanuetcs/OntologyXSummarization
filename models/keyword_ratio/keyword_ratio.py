@@ -79,11 +79,9 @@ class NerRatio(BaseModel):
         for ques_id, ques in self.questions.items():
             ques_list.append(ques)
 
-        with Pool(5) as p:
+        with Pool(6) as p:
             results = p.map(self.question_train, ques_list)
-        # results = []
-        # for index in range(len(ques_list)):
-        #     results.append(self.question_train(ques_list[index]))
+
         for index  in range(len(ques_list)):
             self.result[ques_list[index].id] = results[index]
         self.result = normalize_by_single_doc(self.result)

@@ -4,7 +4,7 @@ from entities import Answer
 from utils.logger import get_logger
 from evaluations.rouge_evaluation import RougeScore
 from evaluations.statistic_tool import average_rouge
-from Preprocessing.preprocessing import load_preprocessing
+from preprocessing.preprocessing import load_preprocessing
 from summarization_phases.sentence_scoring import load_score_by_name, create_sentece_score
 from summarization_phases.single_summarization import single_summarization
 from utils.similarity import bert_base
@@ -81,7 +81,7 @@ def remove_repeat_sentences(sentences):
 def post_processing(sentences):
     selected_sentences = list()
     for sentence in sentences:
-        if '?' not in sentence.sentence and 'example' not in sentence.sentence and len(sentence.ners)<35 and len(sentence.tokens)>1:
+        if '?' not in sentence.sentence and 'example' not in sentence.sentence and len(sentence.ners)<25 and len(sentence.tokens)>1:
             selected_sentences.append(sentence)
     selected_sentences = remove_sentences_contain_urls(selected_sentences)
     #selected_sentences = remove_repeat_sentences(selected_sentences)
@@ -89,53 +89,61 @@ def post_processing(sentences):
     summary = re.sub("[\[].*?[\]]", "", summary)
     return summary
 
-
 if __name__ == '__main__':
     #config
-    version = '1_1'
-    #Code
-    #Tien xu li
-    #########
-    questions = load_preprocessing(name='test_{}'.format(version))
+    version = '1'
+    type = 'test'
+    run_all = True
+    #Preprocessing
+    questions = load_preprocessing(name='{}_{}'.format(type,version))
+    if not(run_all):
+        selected_questions = dict()
+        for questionID in ['95']:
+            selected_questions[questionID] = questions[questionID]
+        questions = selected_questions
     from query_expanding import keyword_expanding
     questions = keyword_expanding(questions, ner_weight=2, token_weight=4)
-    from utils.data_loader import QuestionLoader
-    question_loader = QuestionLoader(name='test_extend_{}'.format(version))
-    question_loader.questions = questions
-    question_loader.export_preprocessing()
-    ###########2
-    scores = create_sentece_score(questions=questions)
 
-    # tóm tắt đơn văn bản
+    if run_all:
+        #scores = load_score_by_name(name='{}_{}'.format(type,version),questions=questions)
+        scores = create_sentece_score(questions=questions)
+    else:
+        scores = create_sentece_score(questions=questions)
+
+    #Single-Summarization
     questions = single_summarization(questions=questions, sentence_scores=scores)
 
-    #tóm tắt đa văn bản
+    #Single-to-Multi
     merge_questions = merge_multi_to_single(questions=questions)
 
+    #MMR
     result = dict()
     for questionID, question in merge_questions.items():
+        logger.info("Get summary for question {}".format(question.id))
         ques_result = {}
 
         sentences = []
         for answerID, answer in question.answers.items():
             for sentenceID, sentence in answer.sentences.items():
                 sentences.append(sentence)
-        if len(sentences)>10:
-            mmr = Mmr_Summary(sim=bert_base, lambta=0.85)
-            selected_sentences = mmr(query=question, n_sentences=25, collection_sents=sentences)
-            summary = post_processing(selected_sentences)
-        else:
-            summary = post_processing(sentences)
+
+        mmr = Mmr_Summary(sim=bert_base, lambta=0.85)
+        selected_sentences = mmr(query=question, n_sentences=25, collection_sents=sentences)
+        selected_sentences = sorted_by_pos(selected_sentences)
+        summary = post_processing(selected_sentences)
         ques_result['question'] = questions[questionID].question
         ques_result['gen_summary'] = summary
         ques_result['ref_summary'] = questions[questionID].multi_ext_summ
         ques_result['rouge'] = RougeScore().get_score(hypothesis=ques_result['gen_summary'],
                                                       reference=ques_result['ref_summary'])
-
         result[questionID] = ques_result
-
-    score = average_rouge(result, 'gen_summary', 'ref_summary')
-    print(score)
+        if not(run_all):
+            print(summary)
+            print(questions[questionID].multi_ext_summ)
+            print(ques_result['rouge'])
+    if run_all:
+        score = average_rouge(result, 'gen_summary', 'ref_summary')
+        print(score)
 
 
 

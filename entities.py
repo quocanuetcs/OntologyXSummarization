@@ -119,12 +119,10 @@ class Answer:
             if index==len(gain_sens)-1: new_gain_sens.append(gain_sens[index])
 
             sentence_cnt = 0
-            sentence_str = list()
             for sens in new_gain_sens:
                 doc = nlp(sens)
                 for sentence in doc.sents:
-                    if (sentence is not None) and (sentence.text not in sentence_str) and (len(''.join(sentence.text.split(" ")))>0):
-                        sentence_str.append(sentence.text)
+                    if (sentence is not None) and (len(''.join(sentence.text.split(" ")))>0):
                         sentence_cnt += 1
                         self.sentences[sentence_cnt] = Sentence(question_id, answer_id, sentence_cnt, sentence.text)
         else:

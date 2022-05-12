@@ -1,11 +1,9 @@
 import pandas as pd
-from ontology.ontology_entities import Node
 import os
 from utils.logger import get_logger
 from json import JSONEncoder
-from copy import deepcopy
 import json
-from utils import preprocessing
+from tqdm import tqdm
 
 logger = get_logger(__file__)
 class ObjectEncoder(JSONEncoder):
@@ -15,7 +13,7 @@ class ObjectEncoder(JSONEncoder):
 def create_chemicals_diseases_relation(node_dict, mapping_to_mondo=None):
     logger.info("Get create_chemicals_diseases_relation")
     df_relations = pd.read_csv(os.path.dirname(os.path.realpath(__file__)) +'/Data/CTD/CTD_chemicals_diseases_result.csv')
-    for index, row in df_relations.iterrows():
+    for index, row in tqdm(df_relations.iterrows()):
         try:
             chemical_node = node_dict[row['ChemicalID']]
             disease_infor = row['DiseaseID'].split(':')
@@ -23,7 +21,8 @@ def create_chemicals_diseases_relation(node_dict, mapping_to_mondo=None):
             if disease_term_from == "MESH":
                 disease_node = node_dict[diseaseID]
                 if disease_term_from not in disease_node.stem_from:
-                    logger.infor("Can not indentify dissease node {}".format(diseaseID))
+                    #logger.infor("Can not indentify dissease node {}".format(diseaseID))
+                    pass
                 disease_node.add_chemical_related_node(chemical_node)
                 chemical_node.add_disease_related_node(disease_node)
             else:
@@ -42,7 +41,6 @@ def create_gene_diseases_relation(node_dict, mapping_to_mondo=None):
     with open(dict_path, encoding='utf-8') as file:
         relation_dict = json.load(file)
 
-    from tqdm import tqdm
     for disease_infor, gene_list in tqdm(relation_dict.items()):
         try:
             disease_infor = disease_infor.split(':')
@@ -51,7 +49,8 @@ def create_gene_diseases_relation(node_dict, mapping_to_mondo=None):
             if disease_term_from == "MESH":
                 disease_node = node_dict[diseaseID]
                 if disease_term_from not in disease_node.stem_from:
-                    logger.infor("Can not indentify dissease node {}".format(diseaseID))
+                    #logger.infor("Can not indentify dissease node {}".format(diseaseID))
+                    pass
                 disease_node.add_gene_related_name(gene_list)
             else:
                 if mapping_to_mondo is not None:

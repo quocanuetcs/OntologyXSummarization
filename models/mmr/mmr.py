@@ -20,14 +20,20 @@ def get_top_n(query, collection_sentencs,lambta, n_sentences,  sim=None, vocab=N
     if n_sentences > len(collection_sentencs):
         n_sentences = len(collection_sentencs)
 
+    sentence_str = list()
     result = []
-    for i in range(n_sentences):
+    count = 0
+    while count<n_sentences and len(collection_sentencs)>0:
         id = np.argmax(
             [get_score(query=query, doc=d, result=result, lambta=lambta, vocab=vocab, sim=sim) for d in
              collection_sentencs])
         d = collection_sentencs[id]
-        result.append(d)
+        if (d is not None) and (d.sentence not in sentence_str):
+            result.append(d)
+            count += 1
+            sentence_str.append(d.sentence)
         collection_sentencs.remove(d)
+
     sorted_by_pos(result)
     return [i for i in result]
 
@@ -47,7 +53,7 @@ class Mmr_Summary:
 
     def __call__(self, query=None, n_sentences=None, ratio=None, collection_sents=None):
         if ratio is not None and isinstance(ratio, float):
-                n_sentences = len(collection_sents) * ratio
+                n_sentences = int(len(collection_sents) * ratio)
         if len(collection_sents)<n_sentences: return collection_sents
         return get_top_n(
             query=query,

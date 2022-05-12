@@ -141,4 +141,3 @@ if __name__ == '__main__':
         node_count+=1
         term_count += len(node.terms)
     print(term_count)
-    print("Hello")

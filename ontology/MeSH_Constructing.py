@@ -30,7 +30,7 @@ def MeSH_create_node_relation(node_dict, tree_num_dict):
                         node.add_child(child)
                         child.add_parent(node)
                     except:
-                        logger.info("Can't find {}".format(child_tree_number))
+                        pass
             except:
                 pass
     return node_dict

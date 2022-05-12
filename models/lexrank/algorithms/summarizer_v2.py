@@ -2,8 +2,6 @@ import math
 from collections import Counter, defaultdict
 import numpy as np
 from models.lexrank.algorithms.power_method import stationary_distribution
-from lexrank.utils.text import tokenize as auto_tokenize
-from nltk.corpus import stopwords
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 def custom_tokenize(text):
@@ -34,36 +32,6 @@ class LexRank:
             rs[key] = 1 / vectorizers.idf_[vocab[key]]
         return rs
 
-    # def _calculate_idf(self, documents):
-    #     bags_of_words = []
-    #
-    #     for doc in documents:
-    #         doc_words = set()
-    #
-    #         for sentence in doc:
-    #             words = sentence.tokens
-    #             doc_words.update(words)
-    #
-    #         if doc_words:
-    #             bags_of_words.append(doc_words)
-    #
-    #     if not bags_of_words:
-    #         raise ValueError('documents are not informative')
-    #
-    #     doc_number_total = len(bags_of_words)
-    #
-    #     if self.include_new_words:
-    #         default_value = math.log(doc_number_total + 1)
-    #
-    #     else:
-    #         default_value = 0
-    #
-    #     idf_score = defaultdict(lambda: default_value)
-    #
-    #     for word in set.union(*bags_of_words):
-    #         doc_number_word = sum(1 for bag in bags_of_words if word in bag)
-    #         idf_score[word] = math.log(doc_number_total / doc_number_word)
-    #     return idf_score
 
     def rank_sentences(
         self,
@@ -107,21 +75,6 @@ class LexRank:
 
         return scores
 
-    # def tokenize_sentence(self, sentence):
-    #     tokens = tokenize(sentence)
-    #     return tokens
-
-
-    # def tokenize_sentence(self, sentence):
-    #     stw = stopwords.words('english')
-    #     tokens = auto_tokenize(
-    #         sentence.normalized_sentence,
-    #         stw,
-    #         False,
-    #         False,
-    #         False,
-    #     )
-    #     return tokens
 
     def _calculate_similarity_matrix(self, tf_scores, question):
         length = len(tf_scores)

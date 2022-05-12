@@ -1,9 +1,3 @@
-
-class PREPROCESSING_CONFIG:
-    def __init__(self):
-        self.name = 'test'
-
-
 class TFIDF_WEIGHT:
     def __init__(self):
         self.ratio_threshold = 0.7
@@ -80,10 +74,6 @@ class ONTOLOGY_CONFIG():
         self.have_gene=False
         self.have_chemicals_diseases_relation=True
 
-class MULTI_SUM():
-    def __init__(self):
-        self.n_sentences = 13
-        self.ratio = None
 
 class WORD_CONFIG():
     def __init__(self):

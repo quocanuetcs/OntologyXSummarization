@@ -1,5 +1,4 @@
 from utils.logger import get_logger
-import pickle
 import json
 from json import JSONEncoder
 import os
@@ -9,7 +8,6 @@ from ontology.CTD_relation import create_chemicals_diseases_relation,create_gene
 from ontology.SYMP_Constructing import SYMP_building
 from tqdm import tqdm
 from difflib import SequenceMatcher, get_close_matches
-
 
 turn_debug = False
 logger = get_logger(__file__)
@@ -73,52 +71,51 @@ def expanding_from_ontology(ontology_node_dict, ner_list):
                     ner_set.add(term)
     return list(ner_set), related_nodeIDs
 
-# def add_symp(node_dict):
-#     symp_maping_dict_path = os.path.dirname(os.path.realpath(__file__)) + '/Data/SYMP/diseases_symp_maping_dict.json'
-#     #symp_node_maping_dict_path = os.path.dirname(os.path.realpath(__file__)) + '/Data/SYMP/diseases_node_symp_maping_dict.json'
-#     if os.path.exists(symp_maping_dict_path):
-#         with open(symp_maping_dict_path, encoding='utf-8') as file:
-#             symp_maping_dict = json.load(file)
-#         for nodeID, node in tqdm(node_dict.items()):
-#             if len(symp_maping_dict[nodeID])>0:
-#                 node_dict[nodeID].symptoms = symp_maping_dict[nodeID]
-#     else:
-#         logger.info("Get maping to SYMP")
-#         symp_node_maping_dict_path = dict()
-#         symp_node_dict = SYMP_building()
-#         for nodeID, node in tqdm(node_dict.items()):
-#             symps, related_nodeIDs = expanding_from_ontology(ontology_node_dict=symp_node_dict, ner_list=node.define_ners)
-#             if len(symps)>0:
-#                 node_dict[nodeID].symptoms = symps
-#                 symp_node_maping_dict_path[nodeID] = list()
-#                 symp_node_maping_dict_path[nodeID].extend(related_nodeIDs)
-#         with open(symp_maping_dict_path, 'w+') as file:
-#             file.write(json.dumps(symp_node_maping_dict_path, cls=ObjectEncoder, indent=2, sort_keys=True))
-#     return node_dict
-
 def add_symp(node_dict):
-    symp_node_maping_dict_path = os.path.dirname(os.path.realpath(__file__)) + '/Data/SYMP/diseases_node_symp_maping_dict.json'
-    if os.path.exists(symp_node_maping_dict_path):
-        with open(symp_node_maping_dict_path, encoding='utf-8') as file:
-            symp_node_maping_dict = json.load(file)
+    symp_maping_dict_path = os.path.dirname(os.path.realpath(__file__)) + '/Data/SYMP/diseases_symp_maping_dict.json'
+    if os.path.exists(symp_maping_dict_path):
+        with open(symp_maping_dict_path, encoding='utf-8') as file:
+            symp_maping_dict = json.load(file)
         for nodeID, node in tqdm(node_dict.items()):
-            try:
-                node_dict[nodeID].symptoms = symp_node_maping_dict[nodeID]
-            except:
-                pass
+            if len(symp_maping_dict[nodeID])>0:
+                node_dict[nodeID].symptoms = symp_maping_dict[nodeID]
     else:
         logger.info("Get maping to SYMP")
-        symp_node_maping_dict = dict()
+        symp_node_maping_dict_path = dict()
         symp_node_dict = SYMP_building()
         for nodeID, node in tqdm(node_dict.items()):
             symps, related_nodeIDs = expanding_from_ontology(ontology_node_dict=symp_node_dict, ner_list=node.define_ners)
             if len(symps)>0:
                 node_dict[nodeID].symptoms = symps
-                symp_node_maping_dict[nodeID] = list()
-                symp_node_maping_dict[nodeID].extend(related_nodeIDs)
-        with open(symp_node_maping_dict_path, 'w+') as file:
-            file.write(json.dumps(symp_node_maping_dict, cls=ObjectEncoder, indent=2, sort_keys=True))
+                symp_node_maping_dict_path[nodeID] = list()
+                symp_node_maping_dict_path[nodeID].extend(related_nodeIDs)
+        with open(symp_maping_dict_path, 'w+') as file:
+            file.write(json.dumps(symp_node_maping_dict_path, cls=ObjectEncoder, indent=2, sort_keys=True))
     return node_dict
+
+# def add_symp(node_dict):
+#     logger.info("Get maping to SYMP")
+#     symp_node_maping_dict_path = os.path.dirname(os.path.realpath(__file__)) + '/Data/SYMP/diseases_node_symp_maping_dict.json'
+#     if os.path.exists(symp_node_maping_dict_path):
+#         with open(symp_node_maping_dict_path, encoding='utf-8') as file:
+#             symp_node_maping_dict = json.load(file)
+#         for nodeID, node in tqdm(node_dict.items()):
+#             try:
+#                 node_dict[nodeID].symptoms = symp_node_maping_dict[nodeID]
+#             except:
+#                 pass
+#     else:
+#         symp_node_maping_dict = dict()
+#         symp_node_dict = SYMP_building()
+#         for nodeID, node in tqdm(node_dict.items()):
+#             symps, related_nodeIDs = expanding_from_ontology(ontology_node_dict=symp_node_dict, ner_list=node.define_ners)
+#             if len(symps)>0:
+#                 node_dict[nodeID].symptoms = symps
+#                 symp_node_maping_dict[nodeID] = list()
+#                 symp_node_maping_dict[nodeID].extend(related_nodeIDs)
+#         with open(symp_node_maping_dict_path, 'w+') as file:
+#             file.write(json.dumps(symp_node_maping_dict, cls=ObjectEncoder, indent=2, sort_keys=True))
+#     return node_dict
 
 def ontology_intergrating(have_mondo, have_symp, have_chemicals_diseases_relation, have_gene):
     node_dict = MeSH_building()
@@ -171,39 +168,8 @@ def ontology_intergrating(have_mondo, have_symp, have_chemicals_diseases_relatio
 
 
 if __name__ == '__main__':
-    node_dict_symp = SYMP_building()
     node_dict = ontology_intergrating(have_mondo=True, have_symp=True, have_chemicals_diseases_relation=True, have_gene=True)
-    count_term = 0
-    count_par_child_relation = 0
-    count_disease_drug_relation = 0
-    count_disease_gene_relation = 0
-    count_disease_symp = 0
-    syms = set()
-    syms_term = []
-    genes = set()
-    for nodeID, node in node_dict.items():
-        count_term = count_term + len(node.terms)
-        count_par_child_relation = count_par_child_relation + len(node.parents)
-        count_disease_drug_relation = count_disease_drug_relation + len(node.chemical_related_node)
-        if len(node.gene_related_name)>0:
-            count_disease_gene_relation = count_disease_gene_relation + 1
-            genes |= set(node.gene_related_name)
-        if len(node.symptoms)>0:
-            count_disease_symp = count_disease_symp + len(node.symptoms)
-            for sym in node.symptoms:
-                if sym not in syms:
-                    syms.add(sym)
-                    syms_term.extend(node_dict_symp[sym].terms)
-    print(len(node_dict))
-    print(count_term)
-    print(count_par_child_relation)
-    print(count_disease_drug_relation)
-    print(count_disease_gene_relation)
-    print(count_disease_symp)
-    print(len(genes))
-    print("-------------")
-    print(len(syms))
-    print(len(syms_term))
+    logger.info("DONE")
 
 
 

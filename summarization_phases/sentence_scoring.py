@@ -49,13 +49,11 @@ def get_wRWD_model(questions):
     return model
 
 def create_sentece_score(questions):
-    query_base_model = get_query_base_score_model(questions, sim=bert_base)
     lexrank_model = get_lexrank_model(questions)
     ner_model = get_ner_score_model(questions)
     wRWMD_model = get_wRWD_model(questions)
     tfidf_model = get_tfidf_model(questions)
-
-
+    query_base_model = get_query_base_score_model(questions, sim=bert_base)
 
     result = dict()
     for question_id, question in questions.items():

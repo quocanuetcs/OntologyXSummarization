@@ -1,13 +1,10 @@
-import pandas as pd
 from tqdm import tqdm
-from Preprocessing.preprocessing import load_preprocessing
 from ontology.constructing import ontology_intergrating
 from difflib import SequenceMatcher, get_close_matches
 from utils.logger import get_logger
 from utils.preprocessing import remove_whitespaces
 from ontology.wordnet_query import query_wordnet
 logger = get_logger(__file__)
-
 
 turn_debug = False
 
@@ -26,7 +23,6 @@ def similarity(ner_1, ner_2, threshold):
                 valid_1[i], valid_2[j] = True, True
     return (len(valid_1) + len(valid_2)) / (len(tokens_1) + len(tokens_2))
 
-#Ít nhất 2 trên 3 từ giống nhau trên 80%
 def infer_nodeID_from_ner(ontology_node_dict ,ner, word_threshold=0.8, ner_threshold=0.7):
     node_dict = dict()
     node_weight = dict()
@@ -73,14 +69,6 @@ def traveling_node(node, weight, ner_set, weight_dict, decay, traveled_node_ID):
         for child in node.children:
             if child.ID not in traveled_node_ID:
                 ner_set, weight_dict, traveled_node_ID = traveling_node(child, child_weight, ner_set, weight_dict, decay, traveled_node_ID)
-
-    # for drug in node.chemical_related_node:
-    #     if drug.ID not in traveled_node_ID:
-    #         ner_set, weight_dict, traveled_node_ID = traveling_node(drug, weight, ner_set, weight_dict, 1, traveled_node_ID)
-    #
-    # for disease in node.disease_related_node:
-    #     if disease.ID not in traveled_node_ID:
-    #         ner_set, weight_dict, traveled_node_ID = traveling_node(disease, weight, ner_set, weight_dict, 1, traveled_node_ID)
 
     return ner_set, weight_dict, traveled_node_ID
 
